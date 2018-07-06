@@ -1,0 +1,23 @@
+name: EachWorld
+main: takesi\main
+version: 2.2
+api: [3.0.0]
+load: POSTWORLD
+author: takesi
+commands:
+ do:
+  description: "実行コマンド"
+  usage: /do
+ permissions:
+  do:
+   default: true
+ wo:
+  description: "Worldコマンド"
+  usage: /wo <subcommand>
+ permissions:
+  wo:
+   default: true
+   children:
+      wo.command:
+        description: "Allows you to use all PurePerms commands."
+        default: true
