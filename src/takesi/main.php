@@ -134,8 +134,7 @@ class main extends PluginBase implements Listener
         $player = $event->getPlayer();
         $level = $player->getLevel();
         $block = $event->getBlock();
-        if ($player->getName() == $level->getName()) {
-        } else {
+        if ($player->getName() != $level->getName()) {
             if (!$player->isOp()) {
                 $this->config = new Config($this->getDataFolder() . $level->getName() . ".yml", Config::YAML);
                 if ($this->config->exists("invited_" . $player->getName())) {
@@ -173,6 +172,9 @@ class main extends PluginBase implements Listener
                     case 46:
                     case 79:
                         $player->sendMessage("§l§cワールド管理システム>>設置権限がありません。");
+                        foreach($this->getServer()->getOnlinePlayers() as $player_tmp){
+                            $player_tmp->sendMessage("§l§c警告>>管理者権限を持つ".$player->getName()."が".$level->getName()."のワールドで禁止指定アイテムを置こうとしました");
+                        }
                         $event->setCancelled();
                         break;
                 }
