@@ -52,7 +52,7 @@ class main extends PluginBase implements Listener
                 $this->config->save();
             }
             //$player->teleport(new Position(-1, 8, 2, $this->getServer()->getDefaultLevel()));//for old world
-            $player->teleport(new Position(216.5, 7,-493, $this->getServer()->getDefaultLevel())); //for old world
+            $player->teleport(new Position(216.5, 7, -493, $this->getServer()->getDefaultLevel())); //for old world
             $player->setGamemode(0);
             $player->sendMessage("[§eSYSTEM§r] " . $player->getName() . "さん、おかえり！");
         } else {
@@ -68,7 +68,7 @@ class main extends PluginBase implements Listener
             }
             $this->getServer()->generateLevel($player->getName());
             $this->getServer()->loadLevel($player->getName());
-            $player->teleport(new Position(216.5, 7,-493, $this->getServer()->getDefaultLevel()));
+            $player->teleport(new Position(216.5, 7, -493, $this->getServer()->getDefaultLevel()));
             $player->setGamemode(0);
             $player->sendMessage("[§eSYSTEM§r] 生徒サーバーへようこそ");
             $player->sendMessage("[§eSYSTEM§r] このサーバーは§b建築サーバー§rです！");
@@ -163,6 +163,18 @@ class main extends PluginBase implements Listener
                 } else {
                     $player->sendMessage("§l§cワールド管理システム>>設置権限がありません。");
                     $event->setCancelled();
+                }
+            } else {
+                switch ($block->getID()) {
+                    case 8:
+                    case 9:
+                    case 10:
+                    case 11:
+                    case 46:
+                    case 79:
+                        $player->sendMessage("§l§cワールド管理システム>>設置権限がありません。");
+                        $event->setCancelled();
+                        break;
                 }
             }
         }
@@ -270,8 +282,8 @@ class main extends PluginBase implements Listener
                                 $sender->sendMessage("====検索結果======");
                                 if ($dir = opendir($this->getServer()->getFilePath() . "worlds")) {
                                     while (($file = readdir($dir)) !== false) {
-                                        if ($file != "." && $file != ".." && str_replace($args[1],"tttttt",$file) != $file) {
-                                            $sender->sendMessage(str_replace($args[1],"§c".$args[1]."§r",$file));
+                                        if ($file != "." && $file != ".." && str_replace($args[1], "tttttt", $file) != $file) {
+                                            $sender->sendMessage(str_replace($args[1], "§c" . $args[1] . "§r", $file));
                                         }
                                     }
                                     closedir($dir);
@@ -317,18 +329,18 @@ class main extends PluginBase implements Listener
                             }
                             return true;
                         case "clear":
-                        if ($sender->getName() == $sender->getLevel()->getName()) {
-                            $players = $sender->getLevel()->getPlayers();
-                            foreach($players as $player){
-                                if($player->getName() != $sender->getName()){
-                                    $player->getInventory()->clearAll();
-                                    $player->sendMessage("§l§eワールド管理システム>>ワールドの管理者によってインベントリは初期化されました");
+                            if ($sender->getName() == $sender->getLevel()->getName()) {
+                                $players = $sender->getLevel()->getPlayers();
+                                foreach ($players as $player) {
+                                    if ($player->getName() != $sender->getName()) {
+                                        $player->getInventory()->clearAll();
+                                        $player->sendMessage("§l§eワールド管理システム>>ワールドの管理者によってインベントリは初期化されました");
+                                    }
                                 }
+                                $sender->sendMessage("§l§eワールド管理システム>>成功！！");
+                            } else {
+                                $sender->sendMessage("§l§eワールド管理システム>>他人のワールドで使用することはできません");
                             }
-                            $sender->sendMessage("§l§eワールド管理システム>>成功！！");
-                        }else{
-                            $sender->sendMessage("§l§eワールド管理システム>>他人のワールドで使用することはできません");
-                        }
                         case "s":
                             if (!isset($args[1])) {
                                 $sender->sendMessage("-===World詳細設定コマンドの使用方法======");
