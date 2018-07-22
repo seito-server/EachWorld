@@ -19,5 +19,5 @@ commands:
    default: true
    children:
       wo.command:
-        description: "Allows you to use all PurePerms commands."
+        description: "Allows you to use all World commands."
         default: true

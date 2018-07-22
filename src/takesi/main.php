@@ -12,23 +12,48 @@ use pocketmine\event\entity\EntitySpawnEvent;
 use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerInteractEvent;
 use pocketmine\event\player\PlayerJoinEvent;
-use pocketmine\event\player\PlayerQuitEvent;
 use pocketmine\level\Position;
 use pocketmine\Player;
 use pocketmine\plugin\PluginBase;
 use pocketmine\utils\Config;
 use takesi\EachTask;
+use tokyo\pmmp\libform\element\Button;
+use tokyo\pmmp\libform\FormApi;
 
 class main extends PluginBase implements Listener
 {
+
+    public $player_touch_time = array();
 
     public function onEnable()
     {
         $this->getLogger()->notice("これはtakesiによる自作プラグインです。");
         $this->getServer()->getPluginManager()->registerEvents($this, $this);
-        $this->getServer()->getScheduler()->scheduleRepeatingTask(new EachTask($this), 10);
+        $this->getScheduler()->scheduleRepeatingTask(new EachTask($this), 10);
         if (!file_exists($this->getDataFolder())) {
             mkdir($this->getDataFolder(), 0744, true);
+        }
+        FormAPI::register($this);
+    }
+
+    public function callback($player, $response): void
+    {
+        if (FormApi::FormCancelled($response)) {
+            // formがキャンセルされていれば
+            $this->getLogger()->info("form was cancelled.");
+        } else {
+            // formがキャンセルされていなければ
+            var_dump($response);
+            switch ($response) {
+                case 0:
+                    $player->sendMessage("§l§eワールド管理システム>>自分のワールドに戻っています...");
+                    $this->goLevel($player, $this->getServer()->getLevelByName($player->getName()), $player->getName());
+                    break;
+                case 1:
+                    $player->sendMessage("§l§eワールド管理システム>>ロビー(world)に戻っています...");
+                    $this->goLevel($player, $this->getServer()->getLevelByName("world"), $player->getName());
+                    break;
+            }
         }
     }
 
@@ -73,37 +98,6 @@ class main extends PluginBase implements Listener
             $player->sendMessage("[§eSYSTEM§r] 生徒サーバーへようこそ");
             $player->sendMessage("[§eSYSTEM§r] このサーバーは§b建築サーバー§rです！");
         }
-    }
-
-    public function onQuit(PlayerQuitEvent $event)
-    {
-        /*$player = $event->getPlayer();
-    $name = date("Y-m-d-H-i-s");
-    if(file_exists($this->getServer()->getFilePath().'worldbackupsbysys/'.$player->getName())){}else{
-    mkdir($this->getServer()->getFilePath().'worldbackupsbysys/'.$player->getName());
-    }
-    mkdir($this->getServer()->getFilePath().'worldbackupsbysys/'.$player->getName()."/".$name);
-    exec('powershell Copy-Item '.$this->getServer()->getFilePath().'worlds/'.$player->getName().'/* '.$this->getServer()->getFilePath().'worldbackupsbysys/'.$player->getName()."/".$name.' -Recurse 2>&1');
-    $json = json_encode(array("time"=>date("Y年m月d日H時i分s秒"))+array("who"=>"SYSTEM"));
-    file_put_contents('./worldbackupsbysys/'.$player->getName()."/".$name."/info.json",$json);
-    // ディレクトリハンドルの取得
-    $dir_h = opendir($this->getServer()->getFilePath().'worldbackupsbysys/'.$player->getName()."/");
-    // ファイル・ディレクトリの一覧を $file_list 配列に
-    if(!($dir_h == true) or !($dir_h == false)){
-    while(false !== ($file_list[] = readdir($dir_h)));
-    // ディレクトリハンドルを閉じる
-    closedir($dir_h);
-    // ファイル名(降順)にする
-    sort($file_list);
-    $old = array_slice($file_list, 3, 1);
-    echo implode($old);
-    echo count($file_list);
-    if(count($file_list) > 8){
-    exec('powershell Remove-Item '.$this->getServer()->getFilePath().'worldbackupsbysys/'.$player->getName()."/".implode($old)." -Recurse 2>&1");
-    }else{
-    $this->getLogger()->debug("バックアップの数が5個以下なので削除いたしません");
-    }
-    }*/
     }
 
     public function onBreak(BlockBreakEvent $event)
@@ -172,8 +166,8 @@ class main extends PluginBase implements Listener
                     case 46:
                     case 79:
                         $player->sendMessage("§l§cワールド管理システム>>設置権限がありません。");
-                        foreach($this->getServer()->getOnlinePlayers() as $player_tmp){
-                            $player_tmp->sendMessage("§l§c警告>>管理者権限を持つ".$player->getName()."が".$level->getName()."のワールドで禁止指定アイテムを置こうとしました");
+                        foreach ($this->getServer()->getOnlinePlayers() as $player_tmp) {
+                            $player_tmp->sendMessage("§l§c警告>>管理者権限を持つ" . $player->getName() . "が" . $level->getName() . "のワールドで禁止指定アイテムを置こうとしました");
                         }
                         $event->setCancelled();
                         break;
@@ -186,8 +180,24 @@ class main extends PluginBase implements Listener
     {
         $item = $event->getItem();
         $player = $event->getPlayer();
-        if ($player->getName() == $player->getLevel()->getName()) {
-        } else {
+        if ($player->getInventory()->getItemInHand()->getId() == 0) {
+            if (isset($this->player_touch_time[$player->getName()])) {
+                if ($this->player_touch_time[$player->getName()] + 2 > time()) {
+                    $list = FormAPI::makeListForm([$this, "callback"]);
+                    $list->setTitle("ワールドメニュー")
+                        ->setContent("アクションを選択")
+                        ->addButton((new Button("自分のワールドへ行く")))
+                        ->addButton((new Button("ロビーに戻る")))
+                        ->sendToPlayer($player);
+                    unset($this->player_touch_time[$player->getName()]);
+                }else{
+                $this->player_touch_time[$player->getName()] = time();
+                }
+            } else {
+                $this->player_touch_time[$player->getName()] = time();
+            }
+        }
+        if ($player->getName() != $player->getLevel()->getName()) {
             switch ($item->getID()) {
                 case 259:
                 case 325:
@@ -263,7 +273,9 @@ class main extends PluginBase implements Listener
                     $sender->sendMessage("/wo gm 0~3 : 自分のゲームモードの変更をします");
                     $sender->sendMessage("/wo give ** : **に自分が今持っているアイテムを渡します");
                     $sender->sendMessage("/wo invite **: **にワールドの編集権限を与えます");
+                    $sender->sendMessage("/wo invitelist : ワールドの編集権限を与えてる人を一覧表示します");
                     $sender->sendMessage("/wo uninvite **: **の編集権限を剥奪します");
+                    $sender->sendMessage("/wo uninvite all: ワールドの編集権限を与えてる人全員の権限を剥奪します");
                     $sender->sendMessage("/wo kick **: **をワールドからkickします");
                     $sender->sendMessage("/wo ban **: **をワールドからBanします");
                     $sender->sendMessage("/wo unban **: **のワールドBanを解除します");
@@ -452,17 +464,16 @@ class main extends PluginBase implements Listener
                             }
                             return true;
                         case "invitelist":
-                            if ($sender->getName() == $sender->getLevel()->getName()) {
-                                $this->config = new Config($this->getDataFolder() . $sender->getName() . ".yml", Config::YAML);
-                                $sender->sendMessage("inviteしている人の一覧");
-                                foreach ($this->config->getAll(false) as $key) {
-                                    if (strpos($key, 'invited_') !== false) {
-                                        $a = str_replace("invited_", "", $key);
-                                        $sender->sendMessage($a);
-                                    }
+                            $this->config = new Config($this->getDataFolder() . $sender->getName() . ".yml", Config::YAML);
+                            $sender->sendMessage("§l§eワールド管理システム>>あなたがワールドの編集権限を与えてる(invite)してる人");
+                            $pointer = 0;
+                            foreach ($this->config->getAll() as $key => $value) {
+                                $this->getLogger()->info($key);
+                                if (strpos($key, 'invited_') !== false) {
+                                    $pointer++;
+                                    $a = str_replace("invited_", "", $key);
+                                    $sender->sendMessage($pointer . "人目 " . $a);
                                 }
-                            } else {
-                                $sender->sendMessage("§l§eワールド管理システム>>自分のワールドで使用してください。");
                             }
                             return true;
                         case "uninvite":
@@ -470,12 +481,25 @@ class main extends PluginBase implements Listener
                                 $sender->sendMessage("§l§eワールド管理システム>>権限を剥奪する人を指定してください。");
                             } else {
                                 $this->config = new Config($this->getDataFolder() . $sender->getName() . ".yml", Config::YAML);
-                                if ($this->config->exists("invited_" . $args[1])) {
-                                    $this->config->remove("invited_" . $args[1]);
+                                if ($args[1] == "all") {
+                                    $pointer = 0;
+                                    foreach ($this->config->getAll() as $key => $value) {
+                                        $this->getLogger()->info($key);
+                                        if (strpos($key, 'invited_') !== false) {
+                                            $pointer++;
+                                            $this->config->remove($key);
+                                        }
+                                    }
                                     $this->config->save();
-                                    $sender->sendMessage("§l§eワールド管理システム>>" . $args[1] . "の権限を剥奪しました。");
+                                    $sender->sendMessage("§l§eワールド管理システム>>合計で" . $pointer . "人の権限を外しました");
                                 } else {
-                                    $sender->sendMessage("§l§eワールド管理システム>>" . $args[1] . "さんにはもともとワールド編集許可が与えられていません。");
+                                    if ($this->config->exists("invited_" . $args[1])) {
+                                        $this->config->remove("invited_" . $args[1]);
+                                        $this->config->save();
+                                        $sender->sendMessage("§l§eワールド管理システム>>" . $args[1] . "の権限を剥奪しました。");
+                                    } else {
+                                        $sender->sendMessage("§l§eワールド管理システム>>" . $args[1] . "さんにはもともとワールド編集許可が与えられていません。");
+                                    }
                                 }
                             }
                             return true;
